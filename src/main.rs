@@ -2,20 +2,25 @@
 
 use clap::Parser;
 use humansize::{format_size, DECIMAL};
+use reqwest::blocking::Client;
 use serde_json::Value;
 
-/// Gets and parses metadata from the 'target' repository
-fn get_size_from(target: String) -> String {
-    let url = "https://api.github.com/repos/".to_string() + &target;
-    let client = reqwest::blocking::Client::new();
+static GITHUB_REPOSITORY_BASE_URL: &str = "https://api.github.com/repos/";
 
-    let raw_data = client
+fn github_api_get_metadata(target_url: String) -> String {
+    let url = GITHUB_REPOSITORY_BASE_URL.to_string() + &target_url;
+    let client = Client::new();
+    let raw_metadata = client
         .get(url)
         .header("User-Agent", "squiddy")
         .send()
         .expect("Failed to send message to GitHub API. Try again");
 
-    let text_data = raw_data.text().unwrap();
+    return raw_metadata.text().unwrap();
+}
+
+fn github_api_get_repository_size(target: String) -> String {
+    let text_data = github_api_get_metadata(target);
 
     let data: Value = serde_json::from_str(&text_data).expect("Error converting data");
 
@@ -42,5 +47,5 @@ struct Commands {
 fn main() {
     let commands = Commands::parse();
 
-    get_size_from(commands.repository);
+    github_api_get_repository_size(commands.repository);
 }
